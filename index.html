@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparador de Planilhas Excel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        .comparison-row:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-10 max-w-6xl">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold mb-6">Comparador de Planilhas Excel</h1>
+
+            <!-- Mensagem de erro -->
+            <div id="errorMessage" class="hidden mb-4 p-4 bg-red-100 text-red-700 rounded-lg"></div>
+
+            <!-- Etapa 1: Upload de arquivos -->
+            <div id="step1" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Planilha 1</label>
+                    <div class="flex items-center gap-4">
+                        <input type="file" id="file1" accept=".xlsx,.xls" class="hidden">
+                        <button onclick="document.getElementById('file1').click()" 
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" 
+                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            Selecionar arquivo
+                        </button>
+                        <span id="file1Status" class="text-sm"></span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-2">Planilha 2</label>
+                    <div class="flex items-center gap-4">
+                        <input type="file" id="file2" accept=".xlsx,.xls" class="hidden">
+                        <button onclick="document.getElementById('file2').click()" 
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" 
+                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            Selecionar arquivo
+                        </button>
+                        <span id="file2Status" class="text-sm"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Etapa 2: Seleção de colunas para comparação -->
+            <div id="step2" class="hidden space-y-6">
+                <h2 class="text-lg font-medium mb-4">Selecione as colunas para comparação</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Coluna da Planilha 1</label>
+                        <select id="column1" class="w-full border rounded-lg p-2">
+                            <option value="">Selecione uma coluna</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Coluna da Planilha 2</label>
+                        <select id="column2" class="w-full border rounded-lg p-2">
+                            <option value="">Selecione uma coluna</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Opções de comparação -->
+                <div class="space-y-4 border-t pt-4">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="realTimeCompare" class="rounded border-gray-300">
+                        <label for="realTimeCompare" class="text-sm font-medium">
+                            Comparação em tempo real
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="ignoreCase" class="rounded border-gray-300">
+                        <label for="ignoreCase" class="text-sm font-medium">
+                            Ignorar maiúsculas/minúsculas
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="ignoreSpaces" class="rounded border-gray-300">
+                        <label for="ignoreSpaces" class="text-sm font-medium">
+                            Ignorar espaços em branco
+                        </label>
+                    </div>
+                </div>
+
+                <button id="compareBtn" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" 
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 11 12 14 22 4"></polyline>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                    Comparar Planilhas
+                </button>
+            </div>
+
+            <!-- Etapa 3: Resultados da Comparação -->
+            <div id="step3" class="hidden space-y-6">
+                <!-- Resumo -->
+                <div class="grid grid-cols-3 gap-4 mb-4 text-center">
+                    <div class="p-4 bg-red-50 rounded-lg">
+                        <div class="text-lg font-semibold text-red-600">Removidos</div>
+                        <div id="removalsCount" class="text-2xl font-bold text-red-700">0</div>
+                    </div>
+                    <div class="p-4 bg-green-50 rounded-lg">
+                        <div class="text-lg font-semibold text-green-600">Adicionados</div>
+                        <div id="additionsCount" class="text-2xl font-bold text-green-700">0</div>
+                    </div>
+                    <div class="p-4 bg-yellow-50 rounded-lg">
+                        <div class="text-lg font-semibold text-yellow-600">Modificados</div>
+                        <div id="changesCount" class="text-2xl font-bold text-yellow-700">0</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4">
+                    <!-- Registros apenas na Planilha 1 -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-medium text-lg mb-3 text-red-600">
+                            Registros apenas na Planilha 1
+                            <span id="onlyInFile1Count" class="text-sm ml-2"></span>
+                        </h3>
+                        <div id="onlyInFile1" class="h-[calc(100vh-400px)] overflow-y-auto text-sm"></div>
+                    </div>
+
+                    <!-- Registros em ambas as planilhas -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-medium text-lg mb-3 text-green-600">
+                            Registros em ambas as planilhas
+                            <span id="inBothCount" class="text-sm ml-2"></span>
+                        </h3>
+                        <div id="inBoth" class="h-[calc(100vh-400px)] overflow-y-auto text-sm"></div>
+                    </div>
+
+                    <!-- Registros apenas na Planilha 2 -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-medium text-lg mb-3 text-red-600">
+                            Registros apenas na Planilha 2
+                            <span id="onlyInFile2Count" class="text-sm ml-2"></span>
+                        </h3>
+                        <div id="onlyInFile2" class="h-[calc(100vh-400px)] overflow-y-auto text-sm"></div>
+                    </div>
+                </div>
+
+                <!-- Botões de ação -->
+                <div class="flex gap-4 justify-center mt-6">
+                    <button id="exportDiffBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" 
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Exportar Diferenças
+                    </button>
+                    <button id="exportMatchBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" 
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Exportar Correspondências
+                    </button>
+                    <button id="exportAllBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" 
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Exportar Tudo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let file1Data = null;
+        let file2Data = null;
+        let comparisonResults = {
+            onlyInFile1: [],
+            onlyInFile2: [],
+            inBoth: []
+        };
+
+        // Função para mostrar erro
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Função para normalizar texto baseado nas opções selecionadas
+        function normalizeValue(value) {
+            if (!value && value !== 0) return '';
+            value = String(value);
+            
+            const ignoreCase = document.getElementById('ignoreCase').checked;
+            const ignoreSpaces = document.getElementById('ignoreSpaces').checked;
+
+            if (ignoreCase) {
+                value = value.toLowerCase();
+            }
+            if (ignoreSpaces) {
+                value = value.trim().replace(/\s+/g, ' ');
+            }
+            return value;
+        }
+
+        // Função para ler arquivo Excel
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    try {
+                        const data = e.target.result;
+                        const workbook = XLSX.read(data, { type: 'binary' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                        if (jsonData.length === 0) {
+                            throw new Error('Planilha vazia');
+                        }
+
+                        resolve({
+                            headers: jsonData[0],
+                            data: jsonData.slice(1)
+                        });
+                    } catch (error) {
+                        reject(new Error('Erro ao ler o arquivo Excel'));
+                    }
+                };
+
+                reader.onerror = () => {
+                    reject(new Error('Erro ao ler o arquivo'));
+                };
+
+                reader.readAsBinaryString(file);
+            });
+        }
+
+        // Manipuladores de eventos para upload de arquivos
+        document.getElementById('file1').addEventListener('change', async (e) => {
+            try {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                file1Data = await readExcelFile(file);
+                document.getElementById('file1Status').textContent = 
+                    `Arquivo carregado - ${file1Data.headers.length} colunas`;
+                document.getElementById('file1Status').classList.add('text-green-600');
+
+                checkAndProceedToStep2();
+            } catch (error) {
+                showError(error.message);
+            }
+        });
+
+        document.getElementById('file2').addEventListener('change', async (e) => {
+            try {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                file2Data = await readExcelFile(file);
+                document.getElementById('file2Status').textContent = 
+                    `Arquivo carregado - ${file2Data.headers.length} colunas`;
+                document.getElementById('file2Status').classList.add('text-green-600');
+
+                checkAndProceedToStep2();
+            } catch (error) {
+                showError(error.message);
+            }
+        });
+
+        // Função para comparar as planilhas
+        function compareFiles(column1, column2) {
+            const col1Index = file1Data.headers.indexOf(column1);
+            const col2Index = file2Data.headers.indexOf(column2);
+
+            const values1 = new Map();
+            const values2 = new Map();
+
+            // Criar mapas para busca rápida
+            file1Data.data.forEach(row => {
+                const value = normalizeValue(row[col1Index]);
+                if (value || value === '0') values1.set(value, row);
+            });
+
+            file2Data.data.forEach(row => {
+                const value = normalizeValue(row[col2Index]);
+                if (value || value === '0') values2.set(value, row);
+            });
+
+            comparisonResults = {
+                onlyInFile1: [],
+                onlyInFile2: [],
+                inBoth: []
+            };
+
+            // Encontrar valores apenas na planilha 1 e em ambas
+            for (const [value1, row1] of values1) {
+                if (values2.has(value1)) {
+                    comparisonResults.inBoth.push({
+                        value: value1,
+                        row1: row1,
+                        row2: values2.get(value1)
+                    });
+                } else {
+                    comparisonResults.onlyInFile1.push({
+                        value: value1,
+                        row: row1
+                    });
+                }
+            }
+
+            // Encontrar valores apenas na planilha 2
+            for (const [value2, row2] of values2) {
+                if (!values1.has(value2)) {
+                    comparisonResults.onlyInFile2.push({
+                        value: value2,
+                        row: row2
+                    });
+                }
+            }
+
+            return comparisonResults;
+        }
+
+        // Função para exibir os resultados
+        function displayResults(results) {
+            // Atualizar contadores
+            document.getElementById('onlyInFile1Count').textContent = 
+                `(${results.onlyInFile1.length} registros)`;
+            document.getElementById('onlyInFile2Count').textContent = 
+                `(${results.onlyInFile2.length} registros)`;
+            document.getElementById('inBothCount').textContent = 
+                `(${results.inBoth.length} registros)`;
+
+            // Atualizar contadores no resumo
+            document.getElementById('removalsCount').textContent = results.onlyInFile1.length;
+            document.getElementById('additionsCount').textContent = results.onlyInFile2.length;
+            
+            let changesCount = 0;
+            results.inBoth.forEach(item => {
+                if (item.row1.some((value, index) => 
+                    normalizeValue(value) !== normalizeValue(item.row2[index]))) {
+                    changesCount++;
+                }
+            });
+            document.getElementById('changesCount').textContent = changesCount;
+
+            // Função auxiliar para criar linha de dados com cabeçalhos
+            function createDataRow(row, headers) {
+                return headers.map((header, index) => 
+                    `<div class="grid grid-cols-2 gap-2">
+                        <span class="font-medium text-gray-600">${header}:</span>
+                        <span>${row[index] || ''}</span>
+                    </div>`
+                ).join('');
+            }
+
+            // Exibir registros apenas na planilha 1
+            document.getElementById('onlyInFile1').innerHTML = results.onlyInFile1
+                .map(item => `
+                    <div class="p-3 border-b hover:bg-red-50 comparison-row">
+                        ${createDataRow(item.row, file1Data.headers)}
+                    </div>
+                `).join('');
+
+            // Exibir registros apenas na planilha 2
+            document.getElementById('onlyInFile2').innerHTML = results.onlyInFile2
+                .map(item => `
+                    <div class="p-3 border-b hover:bg-green-50 comparison-row">
+                        ${createDataRow(item.row, file2Data.headers)}
+                    </div>
+                `).join('');
+
+            // Exibir registros em ambas
+            document.getElementById('inBoth').innerHTML = results.inBoth
+                .map(item => {
+                    const hasChanges = item.row1.some((value, index) => 
+                        normalizeValue(value) !== normalizeValue(item.row2[index])
+                    );
+                    
+                    return `
+                        <div class="p-3 border-b hover:bg-gray-50 comparison-row ${hasChanges ? 'bg-yellow-50' : ''}">
+                            <div class="mb-3">
+                                <div class="font-semibold text-green-600 mb-2">Planilha 1:</div>
+                                ${createDataRow(item.row1, file1Data.headers)}
+                            </div>
+                            <div>
+                                <div class="font-semibold text-blue-600 mb-2">Planilha 2:</div>
+                                ${createDataRow(item.row2, file2Data.headers)}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+        }
+
+        // Verificar se podemos prosseguir para a etapa 2
+        function checkAndProceedToStep2() {
+            if (file1Data && file2Data) {
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+
+                // Preencher selects com as colunas
+                const select1 = document.getElementById('column1');
+                const select2 = document.getElementById('column2');
+
+                select1.innerHTML = '<option value="">Selecione uma coluna</option>' +
+                    file1Data.headers.map(h => `<option value="${h}">${h}</option>`).join('');
+                select2.innerHTML = '<option value="">Selecione uma coluna</option>' +
+                    file2Data.headers.map(h => `<option value="${h}">${h}</option>`).join('');
+
+                // Configurar comparação em tempo real
+                setupRealTimeComparison();
+            }
+        }
+
+        // Função para configurar comparação em tempo real
+        function setupRealTimeComparison() {
+            const realTimeCheckbox = document.getElementById('realTimeCompare');
+            const column1Select = document.getElementById('column1');
+            const column2Select = document.getElementById('column2');
+            const ignoreCaseCheckbox = document.getElementById('ignoreCase');
+            const ignoreSpacesCheckbox = document.getElementById('ignoreSpaces');
+
+            function handleRealTimeChange() {
+                if (realTimeCheckbox.checked && column1Select.value && column2Select.value) {
+                    const results = compareFiles(column1Select.value, column2Select.value);
+                    document.getElementById('step2').classList.add('hidden');
+                    document.getElementById('step3').classList.remove('hidden');
+                    displayResults(results);
+                }
+            }
+
+            // Eventos para comparação em tempo real
+            [realTimeCheckbox, column1Select, column2Select, ignoreCaseCheckbox, ignoreSpacesCheckbox]
+                .forEach(element => {
+                    element.addEventListener('change', () => {
+                        if (realTimeCheckbox.checked) {
+                            handleRealTimeChange();
+                        }
+                    });
+                });
+        }
+
+        // Manipulador para o botão de comparação
+        document.getElementById('compareBtn').addEventListener('click', () => {
+            const column1 = document.getElementById('column1').value;
+            const column2 = document.getElementById('column2').value;
+
+            if (!column1 || !column2) {
+                showError('Selecione as colunas para comparação');
+                return;
+            }
+
+            const results = compareFiles(column1, column2);
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step3').classList.remove('hidden');
+            displayResults(results);
+        });
+
+        // Função para exportar para Excel
+        function exportToExcel(data, filename) {
+            // Criar array com cabeçalhos
+            const headers = [...new Set([
+                ...file1Data.headers,
+                ...file2Data.headers,
+                '_origem'
+            ])];
+
+            // Criar array para os dados com os cabeçalhos
+            const excelData = [headers];
+
+            // Adicionar dados
+            data.forEach(item => {
+                const row = [];
+                headers.forEach(header => {
+                    if (header === '_origem') {
+                        row.push(item._origem);
+                    } else {
+                        // Procurar o valor nas propriedades do item
+                        row.push(item[header] || '');
+                    }
+                });
+                excelData.push(row);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Resultados");
+            XLSX.writeFile(wb, filename);
+        }
+
+        // Manipuladores para os botões de exportação
+        document.getElementById('exportDiffBtn').addEventListener('click', () => {
+            const diffData = [
+                ...comparisonResults.onlyInFile1.map(item => {
+                    const rowData = {};
+                    // Mapear valores da planilha 1
+                    file1Data.headers.forEach((header, index) => {
+                        rowData[header] = item.row[index];
+                    });
+                    return {
+                        ...rowData,
+                        _origem: 'Apenas na Planilha 1'
+                    };
+                }),
+                ...comparisonResults.onlyInFile2.map(item => {
+                    const rowData = {};
+                    // Mapear valores da planilha 2
+                    file2Data.headers.forEach((header, index) => {
+                        rowData[header] = item.row[index];
+                    });
+                    return {
+                        ...rowData,
+                        _origem: 'Apenas na Planilha 2'
+                    };
+                })
+            ];
+            exportToExcel(diffData, 'diferencas.xlsx');
+        });
+
+        document.getElementById('exportMatchBtn').addEventListener('click', () => {
+            const matchData = comparisonResults.inBoth.map(item => {
+                const rowData = {};
+                // Mapear valores da planilha 1
+                file1Data.headers.forEach((header, index) => {
+                    rowData[header] = item.row1[index];
+                });
+                // Adicionar valores da planilha 2 que não existem na planilha 1
+                file2Data.headers.forEach((header, index) => {
+                    if (!rowData.hasOwnProperty(header)) {
+                        rowData[header] = item.row2[index];
+                    }
+                });
+                return {
+                    ...rowData,
+                    _origem: 'Em ambas as planilhas'
+                };
+            });
+            exportToExcel(matchData, 'correspondencias.xlsx');
+        });
+
+        document.getElementById('exportAllBtn').addEventListener('click', () => {
+            const allData = [
+                ...comparisonResults.onlyInFile1.map(item => {
+                    const rowData = {};
+                    // Mapear valores da planilha 1
+                    file1Data.headers.forEach((header, index) => {
+                        rowData[header] = item.row[index];
+                    });
+                    return {
+                        ...rowData,
+                        _origem: 'Apenas na Planilha 1'
+                    };
+                }),
+                ...comparisonResults.onlyInFile2.map(item => {
+                    const rowData = {};
+                    // Mapear valores da planilha 2
+                    file2Data.headers.forEach((header, index) => {
+                        rowData[header] = item.row[index];
+                    });
+                    return {
+                        ...rowData,
+                        _origem: 'Apenas na Planilha 2'
+                    };
+                }),
+                ...comparisonResults.inBoth.map(item => {
+                    const rowData = {};
+                    // Mapear valores da planilha 1
+                    file1Data.headers.forEach((header, index) => {
+                        rowData[header] = item.row1[index];
+                    });
+                    // Adicionar valores da planilha 2 que não existem na planilha 1
+                    file2Data.headers.forEach((header, index) => {
+                        if (!rowData.hasOwnProperty(header)) {
+                            rowData[header] = item.row2[index];
+                        }
+                    });
+                    return {
+                        ...rowData,
+                        _origem: 'Em ambas as planilhas'
+                    };
+                })
+            ];
+            exportToExcel(allData, 'todos_resultados.xlsx');
+        });
+    </script>
+</body>
+</html>
